@@ -9,15 +9,10 @@ import {
   findParentBySel
 } from 'ringcentral-embeddable-extension-common/src/common/helpers'
 import {rc} from './common'
-import fetch from 'ringcentral-embeddable-extension-common/src/common/fetch'
 
-const blankUrl = 'about:blank'
 let tokenHandler
 let {
-  serviceName,
-  clientIDHS,
-  apiServerHS,
-  clientSecretHS
+  serviceName
 } = thirdPartyConfigs
 
 export function hideAuthBtn() {
@@ -38,15 +33,6 @@ function handleAuthClick(e) {
   } else if (classList.contains('rc-dismiss-auth')) {
     hideAuthBtn()
   }
-}
-
-export function hideAuthPanel() {
-  let frameWrap = document.getElementById('rc-auth-hs')
-  let frame = document.getElementById('rc-auth-hs-frame')
-  if (frame) {
-    frame.src = blankUrl
-  }
-  frameWrap && frameWrap.classList.add('rc-hide-to-side')
 }
 
 export function doAuth() {
