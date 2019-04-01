@@ -15,16 +15,10 @@ const blankUrl = 'about:blank'
 let tokenHandler
 let {
   serviceName,
-  appServerHS,
   clientIDHS,
-  appRedirectHS,
   apiServerHS,
   clientSecretHS
 } = thirdPartyConfigs
-const appRedirectHSCoded = encodeURIComponent(appRedirectHS)
-const authUrl = `${appServerHS}/oauth/authorize?` +
-`client_id=${clientIDHS}` +
-`&redirect_uri=${appRedirectHSCoded}&scope=contacts`
 
 export function hideAuthBtn() {
   let dom = document.querySelector('.rc-auth-button-wrap')
@@ -60,12 +54,8 @@ export function doAuth() {
     return
   }
   hideAuthBtn()
-  let frameWrap = document.getElementById('rc-auth-hs')
-  let frame = document.getElementById('rc-auth-hs-frame')
-  if (frame) {
-    frame.src = authUrl
-  }
-  frameWrap && frameWrap.classList.remove('rc-hide-to-side')
+  notifyRCAuthed()
+  rc.local.accessToken = 'authed'
 }
 
 export function notifyRCAuthed(authorized = true) {
@@ -73,64 +63,6 @@ export function notifyRCAuthed(authorized = true) {
     type: 'rc-adapter-update-authorization-status',
     authorized
   })
-}
-
-export function getRefreshToken() {
-  getAuthToken({
-    refresh_token: rc.local.refreshToken
-  })
-}
-
-export async function getAuthToken({
-  code,
-  refresh_token
-}) {
-  let url = `${apiServerHS}/oauth/v1/token`
-  let data = (
-    code
-      ? 'grant_type=authorization_code'
-      : 'grant_type=refresh_token'
-  ) +
-  `&client_id=${clientIDHS}&` +
-  `client_secret=${clientSecretHS}&` +
-  `redirect_uri=${appRedirectHSCoded}&` +
-    (
-      code
-        ? `code=${code}`
-        : `refresh_token=${refresh_token}`
-    )
-
-  let res = await fetch.post(url, data, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-    },
-    body: data
-  })
-
-  /**
-{
-  "access_token": "xxxx",
-  "refresh_token": "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy",
-  "expires_in": 21600
-}
-   */
-  if (!res || !res.access_token) {
-    console.log('get token failed')
-    console.log(res)
-  } else {
-    let expireTime = res.expires_in * .8 * 1000 + (+new Date)
-    await rc.updateToken({
-      accessToken: res.access_token,
-      refreshToken: res.refresh_token,
-      expireTime: expireTime
-    })
-    notifyRCAuthed()
-    tokenHandler = setTimeout(
-      getRefreshToken,
-      Math.floor(res.expires_in * .8 * 1000)
-    )
-  }
 }
 
 export async function unAuth() {
@@ -162,23 +94,5 @@ export function renderAuthButton() {
     !document.querySelector('.rc-auth-button-wrap')
   ) {
     document.body.appendChild(btn)
-  }
-}
-
-export function renderAuthPanel() {
-  let pop = createElementFromHTML(
-    `
-    <div id="rc-auth-hs" class="animate rc-auth-wrap rc-hide-to-side" draggable="false">
-      <div class="rc-auth-frame-box">
-        <iframe class="rc-auth-frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" allow="microphone" src="${blankUrl}" id="rc-auth-hs-frame">
-        </iframe>
-      </div>
-    </div>
-    `
-  )
-  if (
-    !document.getElementById('rc-auth-hs')
-  ) {
-    document.body.appendChild(pop)
   }
 }

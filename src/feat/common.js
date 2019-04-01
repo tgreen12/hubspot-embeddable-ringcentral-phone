@@ -9,17 +9,21 @@ export function getCSRFToken() {
   )
 }
 
+
+export function getPortalId() {
+  return _.get(
+    document.cookie.match(/hubspot\.hub\.id=([^=;]+);/),
+    '[1]'
+  )
+}
+
 export const lsKeys = {
-  accessTokenLSKey: 'third-party-access-token',
-  refreshTokenLSKey: 'third-party-refresh-token',
-  expireTimeLSKey: 'third-party-expire-time'
+  accessTokenLSKey: 'third-party-access-token'
 }
 
 export const rc = {
   local: {
-    refreshToken: null,
-    accessToken: null,
-    expireTime: null
+    accessToken: null
   },
   postMessage: data => {
     document.querySelector('#rc-widget-adapter-frame')
@@ -29,13 +33,11 @@ export const rc = {
   currentUserId: '',
   rcLogined: false,
   cacheKey: 'contacts' + '_' + '',
-  updateToken: async (newToken, type = 'apiKey') => {
+  updateToken: async (newToken, type = 'accessToken') => {
     if (!newToken){
       await ls.clear()
       rc.local = {
-        refreshToken: null,
-        accessToken: null,
-        expireTime: null
+        accessToken: null
       }
     } else if (_.isString(newToken)) {
       rc.local[type] = newToken
@@ -55,8 +57,8 @@ export const rc = {
 
 export const commonFetchOptions = (headers) => ({
   headers: headers || {
-    Authorization: `Bearer ${rc.local.accessToken}`,
-    ...jsonHeader
+    ...jsonHeader,
+    'X-HubSpot-CSRF-hubspotapi': getCSRFToken()
   },
   handleErr: (res) => {
     let {status} = res
@@ -68,3 +70,17 @@ export const commonFetchOptions = (headers) => ({
     }
   }
 })
+
+export function getIds(href = location.href) {
+  let reg = /contacts\/(\d+)\/contact\/(\d+)/
+  let arr = href.match(reg) || []
+  let portalId = arr[1]
+  let vid = arr[2]
+  if (!portalId || !vid) {
+    return null
+  }
+  return {
+    portalId,
+    vid
+  }
+}

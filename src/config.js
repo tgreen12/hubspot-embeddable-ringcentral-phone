@@ -16,23 +16,18 @@ import {
 import {thirdPartyConfigs} from 'ringcentral-embeddable-extension-common/src/common/app-config'
 import * as ls from 'ringcentral-embeddable-extension-common/src/common/ls'
 import fetch, {jsonHeader} from 'ringcentral-embeddable-extension-common/src/common/fetch'
-import {getCSRFToken} from './feat/common'
+import {getCSRFToken, getIds} from './feat/common'
 import {lsKeys, rc} from './feat/common'
 import {
   showActivityDetail,
   getActivities
 } from './feat/activities'
 import {
-  hideAuthBtn,
   showAuthBtn,
-  hideAuthPanel,
   doAuth,
   notifyRCAuthed,
-  getRefreshToken,
-  getAuthToken,
   unAuth,
-  renderAuthButton,
-  renderAuthPanel
+  renderAuthButton
 } from './feat/auth'
 import {
   syncCallLogToThirdParty
@@ -72,20 +67,6 @@ function formatNumbers(res) {
     ]
   }, [])
     .filter(o => checkPhoneNumber(o.number))
-}
-
-function getIds(href = location.href) {
-  let reg = /contacts\/(\d+)\/contact\/(\d+)/
-  let arr = href.match(reg) || []
-  let portalId = arr[1]
-  let vid = arr[2]
-  if (!portalId || !vid) {
-    return null
-  }
-  return {
-    portalId,
-    vid
-  }
 }
 
 async function getNumbers(ids = getIds()) {
@@ -334,35 +315,17 @@ export async function initThirdParty() {
   let userId = getUserId()
   rc.currentUserId = userId
   rc.cacheKey = 'contacts' + '_' + userId
-  let refreshToken = await ls.get(lsKeys.refreshTokenLSKey) || null
   let accessToken = await ls.get(lsKeys.accessTokenLSKey) || null
-  let expireTime = await ls.get(lsKeys.expireTimeLSKey) || null
-  if (expireTime && expireTime > (+new Date())) {
+  if (accessToken) {
     rc.local = {
-      refreshToken,
-      accessToken,
-      expireTime
+      accessToken
     }
   }
 
   //get the html ready
-  renderAuthPanel()
   renderAuthButton()
 
-  if (rc.local.refreshToken) {
+  if (rc.local.accessToken) {
     notifyRCAuthed()
-    getRefreshToken()
   }
-
-  //wait for auth token
-  window.addEventListener('message', function (e) {
-    const data = e.data
-    if (data && data.hsAuthCode) {
-      getAuthToken({
-        code: data.hsAuthCode
-      })
-      hideAuthPanel()
-      hideAuthBtn()
-    }
-  })
 }
